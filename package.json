@@ -1,0 +1,13 @@
+{
+  "name": "ghost-arb-monitor",
+  "version": "4.0.0",
+  "description": "Ghost Arb Monitor - Auto Pool Discovery Edition",
+  "main": "index.js",
+  "scripts": {
+    "start": "node index.js"
+  },
+  "dependencies": {
+    "ethers": "^6.9.0",
+    "node-fetch": "^2.6.9"
+  }
+}
