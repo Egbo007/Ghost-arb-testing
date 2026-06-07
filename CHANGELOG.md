@@ -3,6 +3,29 @@
 All notable changes to this project are documented here.
 Format: Version → What changed → Why it was needed.
 
+## v1.8 — Fee Pre-Check Fix
+Date: June 2026 | Phase: 1
+
+### Fixed
+- CRITICAL: Bot was picking V3 1% pool as buy source because 
+  it had lowest spot price. But 1% trading fee > any realistic 
+  gap. Result: 24hrs of correct rejections, zero signals ever.
+  Fix: if buyPool.fee >= gap%, skip immediately. Then try 
+  second-cheapest pool as buy instead.
+- Version numbering corrected: v4.x → v1.x 
+  (v1 = Phase 1 monitoring. v2 = Phase 2, etc.)
+- TVL and active liquidity now shown separately in price logs
+  for V3 pools: [TVL:$2.1M|Act:$45k]
+
+## v1.7 — Full Code Audit
+## v1.6 — sAMM Fix  
+## v1.5 — WETH/USDC Debug Mode
+## v1.4 — TVL Filter + Active Slippage Split
+## v1.3 — Batched RPC Calls
+## v1.2 — Active V3 Liquidity + 12 Pairs
+## v1.1 — V3 Price Calculation Fix
+## v1.0 — First Working Monitor (auto pool discovery)
+
 ---
 
 ## v4.4 — Active + TVL Split Fix
