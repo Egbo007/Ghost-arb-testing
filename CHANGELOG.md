@@ -1,3 +1,72 @@
+## v1.9 — 7-Bug Audit Fix (5-AI Review)
+Date: June 2026 | Phase: 1
+
+Fixed (caught by running code through 5 different AIs):
+1. ERC20_ABI undefined → silent crash in V3 TVL fallback
+2. Nested loop → checks ALL buy/sell pool combos (not just min/max)
+3. Alert cooldown → 10min per pair prevents Telegram spam
+4. Alt buy pool bug → broken pool substitution removed
+5. BigInt precision → V3 L values exceed JS safe integer (2^53)
+   Now uses BigInt arithmetic, converts only after decimal division
+6. activeOnly → renamed to isV3 (property was never actually set)
+7. Flash fee → configurable: AAVE (0.09%) or BALANCER (0%)
+
+Added: isScanning guard, recursive setTimeout, batched RPC
+20/batch 400ms gap, sAMM excluded from non-stable pairs,
+total fee pre-check (buy+sell+flash must be < gap),
+MIN_GAP=0.3%, MIN_LIQ=$10k, SCAN_INTERVAL=120s
+
+## v1.10 — Balancer + Public RPC Fix
+Date: June 2026 | Phase: 1
+
+Changed:
+- Default flash protocol: Aave → Balancer (0% fee)
+  Minimum profitable gap drops from 0.40% to 0.31%
+  for V3 0.01% → V2 routes
+- Discovery sleep: 150ms → 500ms
+  Public RPC (mainnet.base.org) needs more time between
+  factory calls than Alchemy or many pools are missed
+
+## v1.11 — Google Sheets Logging
+Date: June 2026 | Phase: 1
+
+Added:
+- Google Sheets logging via Apps Script webhook
+- SHEETS_WEBHOOK_URL env var (set in Railway variables)
+- 3 sheets auto-created: Scans (per cycle summary),
+  Signals (profitable opportunities), Pool Prices (every
+  pool's price/liquidity every scan)
+- Non-blocking: Sheets failure never crashes the bot
+- Debug pool log shows null count and liquidity range
+  per scan: "23 null (RPC fail) | 144 got data | liq $0-$2.2M"
+
+## v1.12 — Pool Detail Logging + Sheets Debug
+Date: June 2026 | Phase: 1
+
+Added:
+- Per-pair pool table printed to Railway console each scan:
+  Shows every active pool with DEX name, version, price,
+  fee%, TVL, and Active liquidity (V3 shows both separately)
+  Format:
+  ┌── WETH/USDC │ 11 pools │ raw gap: 0.751%
+  │  Uniswap V3 0.01%  $1575.98  fee:0.01%  TVL:$2.1M  Active:$45k
+  │  Aerodrome vAMM    $1576.25  fee:0.30%  Liq:$4.2M
+  └──────────────────────────────────────────────────────
+- Startup Sheets connection test on boot
+- Sheets response now logged ("OK" or exact error message)
+- Sheets errors now visible in Railway console instead of
+  being swallowed silently
+
+## Build Plan Reference (updated)
+| Phase | Description | Status |
+|-------|-------------|--------|
+| 1 | Multi-pair monitoring, accurate signals | 🔄 Active (v1.12) |
+| 2 | Event-driven scanning (WebSocket Swap events) | ⬜ Next |
+| 3 | Solidity flash loan contract (Balancer) | ⬜ Pending |
+| 4 | Paper trading on testnet | ⬜ Pending |
+| 5 | Live execution + Flashbots | ⬜ Pending |
+| 6 | Automation, MEV protection, scaling | ⬜ Pending |
+
 # Ghost Arb Monitor — Changelog
 
 All notable changes to this project are documented here.
