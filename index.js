@@ -79,31 +79,25 @@ const FACTORIES = [
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 // PAIRS TO WATCH
 //
-// v2.2: Added 3 new pairs — AERO, VIRTUAL, MOG
-// These are Base-native volatile tokens with lower liquidity.
-// LESS bot competition than WETH/USDC. More likely to have
-// gaps that last long enough to catch.
-// minLiquidity set lower (5000) to capture smaller pools.
+// v3.0 TRIMMED: Down from 16 pairs to 4.
+// VIRTUAL/WETH and AERO/WETH are the only pairs the GhostArb
+// smart contract knows how to execute (validated as the most
+// profitable of the original 16 watched pairs).
+// WETH/USDC and cbBTC/USDC are kept — NOT for trading, but because
+// ethUsdPrice / btcUsdPrice are only updated when these specific
+// pair names appear in scanPair()/scan(). Removing them would
+// freeze those prices at their hardcoded defaults forever, which
+// would silently break USD-to-WETH conversion for trade sizing.
+// This cuts pool discovery and RPC usage by roughly 75% versus v2.2.
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 const WATCH_PAIRS = [
-  // Original 12
+  // Kept for price reference only (ethUsdPrice / btcUsdPrice) — not traded directly
   { name: 'WETH/USDC',    tokenA: TOKENS.WETH,  tokenB: TOKENS.USDC,  minLiquidity: 50000 },
-  { name: 'WETH/USDT',    tokenA: TOKENS.WETH,  tokenB: TOKENS.USDT,  minLiquidity: 50000 },
-  { name: 'USDC/USDT',    tokenA: TOKENS.USDC,  tokenB: TOKENS.USDT,  minLiquidity: 50000 },
-  { name: 'DAI/USDC',     tokenA: TOKENS.DAI,   tokenB: TOKENS.USDC,  minLiquidity: 50000 },
-  { name: 'cbETH/WETH',   tokenA: TOKENS.cbETH, tokenB: TOKENS.WETH,  minLiquidity: 50000 },
-  { name: 'WBTC/WETH',    tokenA: TOKENS.WBTC,  tokenB: TOKENS.WETH,  minLiquidity: 50000 },
-  { name: 'cbBTC/WBTC',   tokenA: TOKENS.cbBTC, tokenB: TOKENS.WBTC,  minLiquidity: 50000 },
-  { name: 'cbBTC/WETH',   tokenA: TOKENS.cbBTC, tokenB: TOKENS.WETH,  minLiquidity: 50000 },
   { name: 'cbBTC/USDC',   tokenA: TOKENS.cbBTC, tokenB: TOKENS.USDC,  minLiquidity: 50000 },
-  { name: 'BRETT/WETH',   tokenA: TOKENS.BRETT, tokenB: TOKENS.WETH,  minLiquidity: 50000 },
-  { name: 'DEGEN/WETH',   tokenA: TOKENS.DEGEN, tokenB: TOKENS.WETH,  minLiquidity: 50000 },
-  { name: 'TOSHI/WETH',   tokenA: TOKENS.TOSHI, tokenB: TOKENS.WETH,  minLiquidity: 50000 },
-  // v2.2 NEW — volatile Base-native tokens
+
+  // The 2 pairs the GhostArb contract can actually execute
   { name: 'AERO/WETH',    tokenA: TOKENS.AERO,  tokenB: TOKENS.WETH,  minLiquidity: 5000  },
-  { name: 'AERO/USDC',    tokenA: TOKENS.AERO,  tokenB: TOKENS.USDC,  minLiquidity: 5000  },
   { name: 'VIRTUAL/WETH', tokenA: TOKENS.VIRTUAL,tokenB: TOKENS.WETH, minLiquidity: 5000  },
-  { name: 'MOG/WETH',     tokenA: TOKENS.MOG,   tokenB: TOKENS.WETH,  minLiquidity: 5000  },
 ];
 
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
@@ -736,21 +730,20 @@ async function main() {
   console.log(`WSS: ${WSS_URL}`);
   console.log(`Flash: ${FLASH_LOAN_PROTOCOL} | Gas: $${ESTIMATED_GAS_USD} | Min gap: ${MIN_GAP_PERCENT}%`);
   console.log(`Heartbeat: ${SCAN_INTERVAL_MS/1000}s | WSS spam suppressed after ${WSS_SPAM_THRESHOLD} fails`);
-  console.log(`Watching ${WATCH_PAIRS.length} pairs (${WATCH_PAIRS.length - 12} new) across ${FACTORIES.length} DEXes`);
+  console.log(`Watching ${WATCH_PAIRS.length} pairs (VIRTUAL/WETH + AERO/WETH executable, WETH/USDC + cbBTC/USDC for pricing) across ${FACTORIES.length} DEXes`);
 
   if (SHEETS_WEBHOOK_URL) await logToSheets({ timestamp: new Date().toISOString(), type: 'startup', message: 'Ghost Arb Monitor v2.2 connected' });
 
   const allPools = await discoverAllPools();
   if (!allPools.length) { console.error('❌ No pools found.'); process.exit(1); }
 
-  await sendTelegram(`🤖 <b>Ghost Arb Monitor v2.2 LIVE</b>
+  await sendTelegram(`🤖 <b>Ghost Arb Monitor v3.0 LIVE</b>
 
-💾 <b>token0 cached</b> — 33% fewer RPC calls
+🎯 <b>Trimmed to 4 pairs</b> — VIRTUAL/WETH + AERO/WETH executable, WETH/USDC + cbBTC/USDC for pricing only
+📉 <b>~75% fewer RPC calls</b> vs v2.2's 16-pair scan
+💾 <b>token0 cached</b> — 33% fewer RPC calls on top of that
 ⚡ <b>Exponential backoff</b>: 15s→30s→60s→120s→300s
 📵 <b>Disconnect spam</b>: silenced after ${WSS_SPAM_THRESHOLD} fails, Telegram on recovery
-📉 <b>Min gap</b>: 0.3% → 0.2% (catch more signals)
-⏱ <b>Heartbeat</b>: 2min → 10min (WebSocket still instant)
-🆕 <b>New pairs</b>: AERO/WETH, AERO/USDC, VIRTUAL/WETH, MOG/WETH
 
 ✅ <b>${allPools.length} pools</b> across ${WATCH_PAIRS.length} pairs
 Flash: ${FLASH_LOAN_PROTOCOL} | Gas est: $${ESTIMATED_GAS_USD}`);
